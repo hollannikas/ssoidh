@@ -12,13 +12,12 @@ import javax.imageio.ImageIO;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * RESTful service for pictures
@@ -29,6 +28,8 @@ import java.util.stream.StreamSupport;
 @Path("pictures")
 @Produces(MediaType.APPLICATION_JSON)
 public class PictureController {
+  public static final int THUMBNAIL_HEIGHT = 150;
+  public static final int THUMBNAIL_WIDTH = 150;
 
   // TODO: Stream in stead of byte[] / BufferedImage (mem concerns)
   // TODO: Check out good way to document RESTful services
@@ -38,10 +39,35 @@ public class PictureController {
   private PictureRepository repository;
 
   @GET
-  public List<String> getPictures() {
-    return StreamSupport.stream(repository.findAll().spliterator(), false)
-      .map(Picture::getId)
-      .collect(Collectors.toList());
+  public List<Picture> getPictures() {
+    // TODO: Separate data from Picture
+    return repository.findAll();
+  }
+
+  @GET
+  @Path("{id}/thumbnail")
+  @Produces("image/png")
+  public Response getThumbnail(@PathParam("id") String id) {
+    final Picture picture = repository.findOne(id);
+    InputStream in = new ByteArrayInputStream(picture.getData());
+    BufferedImage bufferedImage;
+    try {
+      bufferedImage = ImageIO.read(in);
+      if(bufferedImage.getWidth() > THUMBNAIL_WIDTH || bufferedImage.getHeight() > THUMBNAIL_HEIGHT) {
+        BufferedImage scaledImage = null;
+        if (bufferedImage != null) {
+          scaledImage = new BufferedImage(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, BufferedImage.TYPE_INT_RGB);
+          Graphics2D graphics2D = scaledImage.createGraphics();
+          graphics2D.drawImage(bufferedImage, 0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, null);
+          graphics2D.dispose();
+        }
+        return Response.ok(scaledImage).build();
+      }
+      return Response.ok(bufferedImage).build();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return Response.serverError().build();
   }
 
   @GET
