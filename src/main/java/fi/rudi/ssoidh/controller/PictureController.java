@@ -3,7 +3,6 @@ package fi.rudi.ssoidh.controller;
 import fi.rudi.ssoidh.domain.Picture;
 import fi.rudi.ssoidh.domain.PictureRepository;
 import org.apache.commons.io.IOUtils;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,8 +27,8 @@ import java.util.List;
 @Path("pictures")
 @Produces(MediaType.APPLICATION_JSON)
 public class PictureController {
-  public static final int THUMBNAIL_HEIGHT = 150;
-  public static final int THUMBNAIL_WIDTH = 150;
+  public static final int THUMBNAIL_HEIGHT = 200;
+  public static final int THUMBNAIL_WIDTH = 200;
 
   // TODO: Stream in stead of byte[] / BufferedImage (mem concerns)
   // TODO: Check out good way to document RESTful services
@@ -53,7 +52,6 @@ public class PictureController {
     BufferedImage bufferedImage;
     try {
       bufferedImage = ImageIO.read(in);
-      if(bufferedImage.getWidth() > THUMBNAIL_WIDTH || bufferedImage.getHeight() > THUMBNAIL_HEIGHT) {
         BufferedImage scaledImage = null;
         if (bufferedImage != null) {
           scaledImage = new BufferedImage(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -62,12 +60,17 @@ public class PictureController {
           graphics2D.dispose();
         }
         return Response.ok(scaledImage).build();
-      }
-      return Response.ok(bufferedImage).build();
     } catch (IOException e) {
       e.printStackTrace();
     }
     return Response.serverError().build();
+  }
+
+  @GET
+  @Path("{id}/metadata")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getMetadata(@PathParam("id") String id) {
+    return Response.ok(repository.findOne(id)).build();
   }
 
   @GET
@@ -87,10 +90,10 @@ public class PictureController {
   }
 
   @POST
+  @Path("upload/{caption}")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public Response uploadPicture(@FormDataParam("file") InputStream file,
-                              @FormDataParam("caption") String caption,
-                              @FormDataParam("file") FormDataContentDisposition fileDetail) {
+                              @PathParam("caption") String caption) {
     Picture picture = new Picture(caption);
     try {
       picture.setData(IOUtils.toByteArray(file));
