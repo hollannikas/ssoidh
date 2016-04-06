@@ -1,5 +1,6 @@
 package fi.rudi.ssoidh.controller;
 
+import fi.rudi.ssoidh.domain.Comment;
 import fi.rudi.ssoidh.domain.Picture;
 import fi.rudi.ssoidh.domain.PictureRepository;
 import org.apache.commons.io.IOUtils;
@@ -16,6 +17,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -26,6 +29,7 @@ import java.util.List;
 @RestController
 @Path("pictures")
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public class PictureController {
   public static final int THUMBNAIL_HEIGHT = 200;
   public static final int THUMBNAIL_WIDTH = 200;
@@ -68,7 +72,6 @@ public class PictureController {
 
   @GET
   @Path("{id}/metadata")
-  @Produces(MediaType.APPLICATION_JSON)
   public Response getMetadata(@PathParam("id") String id) {
     return Response.ok(repository.findOne(id)).build();
   }
@@ -103,6 +106,27 @@ public class PictureController {
       e.printStackTrace();
     }
     return Response.serverError().build();
+  }
+
+  // Comments
+  @GET
+  @Path("{id}/comments")
+  public Response getComments(@PathParam("id") String id) {
+    return Response.ok(repository.findOne(id).getComments()).build();
+  }
+
+  @PUT
+  @Path("{id}/comments/add/{author}/{text}")
+  public Response addComment(@PathParam("id") String pictureId,
+                             @PathParam("author") String author,
+                             @PathParam("text") String text) {
+    final Picture picture = repository.findOne(pictureId);
+    final Date now = Calendar.getInstance().getTime();
+    Comment comment = new Comment(author, text);
+    comment.setDate(now);
+    picture.getComments().add(comment);
+    repository.save(picture);
+    return Response.ok().build();
   }
 
 }

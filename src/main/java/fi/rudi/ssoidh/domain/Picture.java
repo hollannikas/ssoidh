@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * A Picture
@@ -23,4 +26,6 @@ public class Picture {
   private String caption;
 
   private byte[] data;
+
+  private List<Comment> comments = new ArrayList<>();
 }
