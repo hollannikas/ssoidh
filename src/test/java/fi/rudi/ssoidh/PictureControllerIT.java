@@ -43,6 +43,7 @@ public class PictureControllerIT {
   private ApplicationContext applicationContext;
 
   public static final String PICTURES_URL = "http://localhost:9090/rest/pictures/";
+  public static final String PICTURES_UPLOAD_URL = "http://localhost:9090/rest/pictures/upload";
   private RestTemplate restTemplate = new TestRestTemplate();
 
   @Test
@@ -62,7 +63,7 @@ public class PictureControllerIT {
   public void listPictures() {
     for(int counter = 0; counter < 10; counter++) {
       final MultiValueMap<String, Object> uploadMap = createUploadMap("name" + counter, "caption" + counter);
-      restTemplate.postForObject(PICTURES_URL, uploadMap, String.class);
+      restTemplate.postForObject(PICTURES_UPLOAD_URL + "/caption"+counter, uploadMap, String.class);
     }
 
     ResponseEntity<List> pictures = restTemplate.getForEntity(PICTURES_URL, List.class);
