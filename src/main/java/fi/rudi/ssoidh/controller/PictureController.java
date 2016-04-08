@@ -122,11 +122,11 @@ public class PictureController {
                              @PathParam("text") String text) {
     final Picture picture = repository.findOne(pictureId);
     final Date now = Calendar.getInstance().getTime();
-    Comment comment = new Comment(author, text);
+    Comment comment = new Comment(text, author);
     comment.setDate(now);
     picture.getComments().add(comment);
     repository.save(picture);
-    return Response.ok().build();
+    return Response.ok(picture).build();
   }
 
 }
