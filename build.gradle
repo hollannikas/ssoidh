@@ -12,14 +12,18 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'eclipse-wtp'
-apply plugin: 'spring-boot' 
-apply plugin: 'war'
+apply plugin: 'spring-boot'
+apply plugin: 'idea'
 
-
-war {
-	baseName = 'ssoidh'
-	version = '0.0.1-SNAPSHOT'
+bootRun {
+  addResources = true
 }
+
+jar {
+  baseName = 'ssoidh'
+  version = '0.0.1-SNAPSHOT'
+}
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -60,4 +64,8 @@ eclipse {
 
 task wrapper(type: Wrapper) {
 	gradleVersion = '2.9'
+}
+
+task stage {
+  dependsOn build
 }
