@@ -18,7 +18,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @Configuration
 @EnableMongoRepositories
 @ComponentScan(basePackageClasses = {PictureRepository.class})
-@PropertySource("classpath:application.properties")
+@PropertySource("classpath:application.yml")
 public class ITMongoConfiguration extends AbstractMongoConfiguration {
 
   @Override
