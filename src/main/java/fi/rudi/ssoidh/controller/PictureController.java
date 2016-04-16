@@ -3,9 +3,15 @@ package fi.rudi.ssoidh.controller;
 import fi.rudi.ssoidh.domain.Comment;
 import fi.rudi.ssoidh.domain.Picture;
 import fi.rudi.ssoidh.domain.PictureRepository;
+import fi.rudi.ssoidh.domain.User;
+import fi.rudi.ssoidh.service.SecurityContextService;
 import org.apache.commons.io.IOUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
@@ -40,6 +46,9 @@ public class PictureController {
 
   @Autowired
   private PictureRepository repository;
+
+  @Autowired
+  private SecurityContextService securityContextService;
 
   @GET
   public List<Picture> getPictures() {
@@ -97,9 +106,11 @@ public class PictureController {
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public Response uploadPicture(@FormDataParam("file") InputStream file,
                               @PathParam("caption") String caption) {
-    Picture picture = new Picture(caption);
+    User currentUser = securityContextService.currentUser();
+    Picture picture = new Picture(caption, currentUser.getUsername());
     try {
       picture.setData(IOUtils.toByteArray(file));
+      file.close();
       repository.save(picture);
       return Response.ok(picture.getId()).build();
     } catch (IOException e) {
@@ -116,17 +127,21 @@ public class PictureController {
   }
 
   @PUT
-  @Path("{id}/comments/add/{author}/{text}")
+  @Path("{id}/comments/add/{text}")
   public Response addComment(@PathParam("id") String pictureId,
-                             @PathParam("author") String author,
-                             @PathParam("text") String text) {
+                             @PathParam("text") String commentText) {
+    User currentUser = securityContextService.currentUser();
     final Picture picture = repository.findOne(pictureId);
     final Date now = Calendar.getInstance().getTime();
-    Comment comment = new Comment(text, author);
+    Comment comment = new Comment(commentText, currentUser.getName());
     comment.setDate(now);
     picture.getComments().add(comment);
     repository.save(picture);
-    return Response.ok(picture).build();
+    return Response.ok(true).build();
   }
 
+  @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
+  @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+  public void handleNoPermission() {
+  }
 }

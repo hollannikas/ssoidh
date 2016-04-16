@@ -25,6 +25,9 @@ public class Picture {
   @NonNull
   private String caption;
 
+  @NonNull
+  private String owner;
+
   private byte[] data;
 
   private List<Comment> comments = new ArrayList<>();
