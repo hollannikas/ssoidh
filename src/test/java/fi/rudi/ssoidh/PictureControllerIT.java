@@ -1,17 +1,20 @@
 package fi.rudi.ssoidh;
 
+import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Response;
+import com.lordofthejars.nosqlunit.annotation.UsingDataSet;
 import com.lordofthejars.nosqlunit.mongodb.MongoDbRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.IntegrationTest;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -21,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
+import static com.jayway.restassured.RestAssured.given;
 import static com.lordofthejars.nosqlunit.mongodb.MongoDbRule.MongoDbRuleBuilder.newMongoDbRule;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +40,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @IntegrationTest("server.port=9090")
 public class PictureControllerIT {
 
-  // TODO Use RESTeasy
   @Rule
   public MongoDbRule mongoDbRule = newMongoDbRule().defaultSpringMongoDb("integration-test");
 
@@ -47,6 +50,49 @@ public class PictureControllerIT {
   public static final String PICTURES_URL = "http://localhost:9090/rest/pictures/";
   public static final String PICTURES_UPLOAD_URL = "http://localhost:9090/rest/pictures/upload";
   private RestTemplate restTemplate = new TestRestTemplate();
+
+
+  @Value("${local.server.port}")
+  private int port;
+
+  @Before
+  public void setUp() {
+    RestAssured.port = this.port;
+  }
+
+  @Test
+  public void invalidUserCannotLogin() {
+    given()
+      .request()
+      .body("{ " +
+        "\"email\": \"bob\"," +
+        "\"password\": \"bob\"" +
+        "}")
+      .when()
+      .post("/api/login")
+      .then()
+      .statusCode(HttpStatus.UNAUTHORIZED.value());
+  }
+
+  @Test
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void existingUserIsAuthenticated() {
+    Response tokenResponse =
+      given()
+        .request()
+        .body("{ " +
+          "\"email\": \"bob@bob.com\"," +
+          "\"password\": \"bob\"" +
+          "}")
+        .when()
+        .post("/api/login")
+        .then()
+        .statusCode(HttpStatus.OK.value())
+        .extract().response();
+
+    Assert.assertEquals("eyJhbGciOiJIUzUxMiJ9",
+      tokenResponse.getHeader("X-AUTH-TOKEN").split("[.]")[0]);
+  }
 
   @Test
   public void uploadPicture() {
