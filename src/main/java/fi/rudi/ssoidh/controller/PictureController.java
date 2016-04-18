@@ -7,16 +7,18 @@ import fi.rudi.ssoidh.domain.User;
 import fi.rudi.ssoidh.service.SecurityContextService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.imageio.ImageIO;
-import javax.websocket.server.PathParam;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
@@ -51,25 +53,29 @@ public class PictureController {
     return repository.findAll();
   }
 
-  @RequestMapping(value = "{id}/thumbnail", method = RequestMethod.GET, produces = "image/png")
-  public BufferedImage getThumbnail(@PathVariable("id") String id) {
+  @RequestMapping(value = "{id}/thumbnail", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
+  public ResponseEntity<byte[]> getThumbnail(@PathVariable("id") String id) {
     final Picture picture = repository.findOne(id);
     InputStream in = new ByteArrayInputStream(picture.getData());
     BufferedImage scaledImage = null;
     BufferedImage bufferedImage;
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     try {
       bufferedImage = ImageIO.read(in);
-
         if (bufferedImage != null) {
           scaledImage = new BufferedImage(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, BufferedImage.TYPE_INT_RGB);
           Graphics2D graphics2D = scaledImage.createGraphics();
           graphics2D.drawImage(bufferedImage, 0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, null);
           graphics2D.dispose();
+          ImageIO.write(scaledImage  , "jpg", byteArrayOutputStream);
         }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return Optional.of(scaledImage).orElse(null);
+    byte[] bytes = byteArrayOutputStream.toByteArray();
+    return ResponseEntity.ok()
+      .contentLength( bytes.length)
+      .body(bytes);
   }
 
   @RequestMapping(value = "{id}/metadata", method = RequestMethod.GET)
@@ -77,24 +83,29 @@ public class PictureController {
     return repository.findOne(id);
   }
 
-  @RequestMapping(value = "{id}", method = RequestMethod.GET, produces = "image/png")
-  public BufferedImage getPicture(@PathVariable("id") String id) {
+  @RequestMapping(value = "{id}", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
+  public ResponseEntity<byte[]> getPicture(@PathVariable("id") String id) {
     final Picture picture = repository.findOne(id);
     InputStream in = new ByteArrayInputStream(picture.getData());
-    BufferedImage bufferedImage = null;
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     try {
-      bufferedImage = ImageIO.read(in);
+      BufferedImage bufferedImage = ImageIO.read(in);
+      ImageIO.write(bufferedImage  , "jpg", byteArrayOutputStream);
+
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return Optional.of(bufferedImage).orElse(null);
+    byte[] bytes = byteArrayOutputStream.toByteArray();
+    return ResponseEntity.ok()
+      .contentLength( bytes.length)
+      .contentType(MediaType.parseMediaType( MediaType.IMAGE_JPEG_VALUE ))
+      .body(bytes);
   }
-
 
   @RequestMapping(method = RequestMethod.POST, value = "upload/{caption}")
   public Picture upload(@RequestParam("name") String name,
                                  @RequestParam("file") MultipartFile file,
-                                 @PathParam("caption") String caption,
+                                 @PathVariable("caption") String caption,
                                  RedirectAttributes redirectAttributes) {
 
     User currentUser = securityContextService.currentUser();
@@ -115,7 +126,7 @@ public class PictureController {
   }
 
 
-  @RequestMapping(value = "{id}/comments/add/{text}", method = RequestMethod.GET)
+  @RequestMapping(value = "{id}/comments/add/{text}", method = RequestMethod.PUT)
   public Comment addComment(@PathVariable("id") String pictureId,
                              @PathVariable("text") String commentText) {
     User currentUser = securityContextService.currentUser();
