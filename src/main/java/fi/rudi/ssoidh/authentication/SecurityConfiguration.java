@@ -47,7 +47,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     ;
 
     http.authorizeRequests()
-      .antMatchers(HttpMethod.GET, "/rest/pictures/upload/**").hasRole("USER")
+      .antMatchers(HttpMethod.POST, "/rest/pictures/upload/**").hasRole("USER")
       .antMatchers(HttpMethod.GET, "/api/users/me/microposts").hasRole("USER")
       .antMatchers("/api/microposts/**").hasRole("USER")
       .antMatchers("/api/relationships/**").hasRole("USER")

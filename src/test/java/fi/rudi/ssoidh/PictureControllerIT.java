@@ -4,6 +4,7 @@ import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
 import com.lordofthejars.nosqlunit.annotation.UsingDataSet;
 import com.lordofthejars.nosqlunit.mongodb.MongoDbRule;
+import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,13 +96,51 @@ public class PictureControllerIT {
   }
 
   @Test
-  public void uploadPicture() {
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void unauthenticatedUserCannotUploadAPicture() throws Exception {
+    final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
 
-    final String caption = "test1";
-    final String filename = "screenshot.png";
+    given()
+      .request()
+      .header("X-AUTH-TOKEN", "")
+      .multiPart("file", "myFile", bytes)
+      .multiPart("name", "filename")
+      .when()
+      .post("rest/pictures/upload/caption")
+      .then()
+      .statusCode(HttpStatus.FORBIDDEN.value());
+  }
 
-    final MultiValueMap<String, Object> uploadMap = createUploadMap(filename, caption);
-    String objectId = restTemplate.postForObject(PICTURES_URL, uploadMap, String.class);
+  @Test
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void authenticatedUserCanUploadAPicture() throws Exception {
+    Response tokenResponse =
+      given()
+        .request()
+        .body("{ " +
+          "\"email\": \"bob@bob.com\"," +
+          "\"password\": \"bob\"" +
+          "}")
+        .when()
+        .post("/api/login")
+        .then()
+        .statusCode(HttpStatus.OK.value())
+        .extract().response();
+
+    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+
+    final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
+
+    given()
+      .request()
+      .header("X-AUTH-TOKEN", token)
+      .multiPart("file", "myFile", bytes)
+      .multiPart("name", "filename")
+      .when()
+      .post("rest/pictures/upload/caption")
+      .then()
+      .statusCode(HttpStatus.OK.value());
+
 
     // TODO test that objectId is stored to mongo
 

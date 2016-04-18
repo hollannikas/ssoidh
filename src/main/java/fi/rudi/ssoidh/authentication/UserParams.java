@@ -24,13 +24,17 @@ public final class UserParams {
   private final String email;
   private final String password;
   private final String name;
+  // FIXME remove passwordConfirmation
+  private final String passwordConfirmation;
 
   public UserParams(@JsonProperty("email") String email,
                     @JsonProperty("password") String password,
-                    @JsonProperty("name") String name) {
+                    @JsonProperty("name") String name,
+                    @JsonProperty("passwordConfirmation") String passwordConfirmation) {
     this.email = email;
     this.password = password;
     this.name = name;
+    this.passwordConfirmation = passwordConfirmation;
   }
 
   public Optional<String> getEmail() {

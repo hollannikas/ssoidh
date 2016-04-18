@@ -55,8 +55,6 @@ class StatelessLoginFilter extends AbstractAuthenticationProcessingFilter {
     tokenAuthenticationService.addAuthentication(response, userAuthentication);
 
     SecurityContextHolder.getContext().setAuthentication(userAuthentication);
-
-    response.setContentType(javax.ws.rs.core.MediaType.APPLICATION_JSON);
   }
 
 }

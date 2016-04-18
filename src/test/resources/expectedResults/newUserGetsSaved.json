@@ -1,0 +1,9 @@
+{
+  "user": [
+    {
+      "username": "user@mock.org",
+      "password": "ignoreme",
+      "name": "john"
+    }
+  ]
+}
