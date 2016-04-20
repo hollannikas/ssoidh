@@ -48,9 +48,9 @@ public class PictureController {
   private SecurityContextService securityContextService;
 
   @RequestMapping(method = RequestMethod.GET)
-  public List<Picture> getPictures() {
+  public ResponseEntity<List<Picture>> getPictures() {
     // TODO: Separate data from Picture Jackson JsonView?
-    return repository.findAll();
+    return ResponseEntity.ok().body(repository.findAll());
   }
 
   @RequestMapping(value = "{id}/thumbnail", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
