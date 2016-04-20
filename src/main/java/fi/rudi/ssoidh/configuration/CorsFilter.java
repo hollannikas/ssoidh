@@ -23,6 +23,8 @@ public class CorsFilter implements Filter {
     HttpServletResponse response = (HttpServletResponse) res;
     response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
     response.setHeader("Access-Control-Allow-Headers", "X-Requested-With,content-type,X-Auth-Token");
+    // https://github.com/angular/angular/issues/5237#issuecomment-156059284
+    response.setHeader("access-control-expose-headers", "X-Auth-Token");
     response.setHeader("Access-Control-Allow-Methods", "POST, PUT, GET, OPTIONS, DELETE");
     response.setHeader("Access-Control-Allow-Credentials", "true");
     try {
