@@ -2,6 +2,7 @@ package fi.rudi.ssoidh.authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.rudi.ssoidh.service.UserService;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -40,7 +41,6 @@ class StatelessLoginFilter extends AbstractAuthenticationProcessingFilter {
                                               HttpServletResponse response) throws AuthenticationException, IOException, ServletException {
     final UserParams params = new ObjectMapper().readValue(request.getInputStream(), UserParams.class);
     final UsernamePasswordAuthenticationToken loginToken = params.toAuthenticationToken();
-
     return getAuthenticationManager().authenticate(loginToken);
   }
 
@@ -55,6 +55,7 @@ class StatelessLoginFilter extends AbstractAuthenticationProcessingFilter {
     tokenAuthenticationService.addAuthentication(response, userAuthentication);
 
     SecurityContextHolder.getContext().setAuthentication(userAuthentication);
-  }
 
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+  }
 }

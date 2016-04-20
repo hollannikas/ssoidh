@@ -1,4 +1,5 @@
 app:
   jwt:
     secret: qwerty
-
+security:
+  sessions: NEVER

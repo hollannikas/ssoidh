@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Created by rudi on 11/04/16.
@@ -16,7 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 @Service
 class TokenAuthenticationService {
 
-  private static final String AUTH_HEADER_NAME = "X-AUTH-TOKEN";
+  private static final String AUTH_HEADER_NAME = "x-auth-token";
 
   private final TokenHandler tokenHandler;
 
@@ -29,6 +30,11 @@ class TokenAuthenticationService {
                          UserAuthentication authentication) {
     final UserDetails user = authentication.getDetails();
     response.addHeader(AUTH_HEADER_NAME, tokenHandler.createTokenForUser(user));
+    try {
+      response.getWriter().println(response.getHeader(AUTH_HEADER_NAME));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   Authentication getAuthentication(HttpServletRequest request) {
