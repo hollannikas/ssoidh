@@ -28,6 +28,7 @@ import java.util.List;
 import static com.jayway.restassured.RestAssured.given;
 import static com.lordofthejars.nosqlunit.mongodb.MongoDbRule.MongoDbRuleBuilder.newMongoDbRule;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
 
 /**
  * Integration (REST - mongo) test for PictureController
@@ -48,8 +49,8 @@ public class PictureControllerIT {
   @Autowired
   private ApplicationContext applicationContext;
 
-  public static final String PICTURES_URL = "http://localhost:9090/rest/pictures/";
-  public static final String PICTURES_UPLOAD_URL = "http://localhost:9090/rest/pictures/upload";
+  private static final String PICTURES_URL = "http://localhost:9090/rest/pictures/";
+  private static final String PICTURES_UPLOAD_URL = "http://localhost:9090/rest/pictures/upload";
   private RestTemplate restTemplate = new TestRestTemplate();
 
 
@@ -131,18 +132,60 @@ public class PictureControllerIT {
 
     final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
 
-    given()
+    String pictureId = given()
       .request()
       .header("X-AUTH-TOKEN", token)
       .multiPart("file", "myFile", bytes)
       .multiPart("name", "filename")
       .when()
       .post("rest/pictures/upload/caption")
-      .then()
-      .statusCode(HttpStatus.OK.value());
-
+      .then().extract().body().jsonPath().getString("id");
 
     // TODO test that objectId is stored to mongo
+
+  }
+
+  @Test
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void authenticatedUserCanComment() throws Exception {
+    Response tokenResponse =
+      given()
+        .request()
+        .body("{ " +
+          "\"email\": \"bob@bob.com\"," +
+          "\"password\": \"bob\"" +
+          "}")
+        .when()
+        .post("/api/login")
+        .then()
+        .statusCode(HttpStatus.OK.value())
+        .extract().response();
+
+    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+
+    final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
+
+    String pictureId = given()
+      .request()
+      .header("X-AUTH-TOKEN", token)
+      .multiPart("file", "myFile", bytes)
+      .multiPart("name", "filename")
+      .when()
+      .post("rest/pictures/upload/caption")
+      .then().extract().body().jsonPath().getString("id");
+
+    final String COMMENT_TEXT = "This is a comment";
+
+    given()
+      .request()
+      .header("X-AUTH-TOKEN", token)
+      .body(COMMENT_TEXT)
+      .when()
+      .put("rest/pictures/" + pictureId + "/comments")
+      .then()
+      .statusCode(HttpStatus.OK.value())
+      .assertThat().body("author", equalTo("Bob"))
+      .assertThat().body("text", equalTo(COMMENT_TEXT));
 
   }
 

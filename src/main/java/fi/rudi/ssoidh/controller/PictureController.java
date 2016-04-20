@@ -126,13 +126,13 @@ public class PictureController {
   }
 
 
-  @RequestMapping(value = "{id}/comments/add/{text}", method = RequestMethod.PUT)
+  @RequestMapping(value = "{id}/comments", method = RequestMethod.PUT)
   public Comment addComment(@PathVariable("id") String pictureId,
-                             @PathVariable("text") String commentText) {
+                            @RequestBody String text) {
     User currentUser = securityContextService.currentUser();
     final Picture picture = repository.findOne(pictureId);
     final Date now = Calendar.getInstance().getTime();
-    Comment comment = new Comment(commentText, currentUser.getName());
+    Comment comment = new Comment(text, currentUser.getName());
     comment.setDate(now);
     picture.getComments().add(comment);
     return comment;
