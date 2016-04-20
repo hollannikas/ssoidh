@@ -135,6 +135,7 @@ public class PictureController {
     Comment comment = new Comment(text, currentUser.getName());
     comment.setDate(now);
     picture.getComments().add(comment);
+    repository.save(picture);
     return comment;
   }
 
