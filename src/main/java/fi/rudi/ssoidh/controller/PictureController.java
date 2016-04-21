@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -102,11 +101,9 @@ public class PictureController {
       .body(bytes);
   }
 
-  @RequestMapping(method = RequestMethod.POST, value = "upload/{caption}")
-  public Picture upload(@RequestParam("name") String name,
-                                 @RequestParam("file") MultipartFile file,
-                                 @PathVariable("caption") String caption,
-                                 RedirectAttributes redirectAttributes) {
+  @RequestMapping(method = RequestMethod.POST, value = "upload")
+  public Picture upload(@RequestParam("file") MultipartFile file,
+                        @RequestParam("caption") String caption) {
 
     User currentUser = securityContextService.currentUser();
     Picture picture = new Picture(caption, currentUser.getUsername());

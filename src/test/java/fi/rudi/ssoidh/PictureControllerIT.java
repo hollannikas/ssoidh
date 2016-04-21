@@ -5,7 +5,10 @@ import com.jayway.restassured.response.Response;
 import com.lordofthejars.nosqlunit.annotation.UsingDataSet;
 import com.lordofthejars.nosqlunit.mongodb.MongoDbRule;
 import org.apache.commons.io.IOUtils;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -137,8 +140,9 @@ public class PictureControllerIT {
       .header("X-AUTH-TOKEN", token)
       .multiPart("file", "myFile", bytes)
       .multiPart("name", "filename")
+      .multiPart("caption", "caption!")
       .when()
-      .post("rest/pictures/upload/caption")
+      .post("rest/pictures/upload")
       .then().extract().body().jsonPath().getString("id");
 
     // TODO test that objectId is stored to mongo
@@ -170,8 +174,9 @@ public class PictureControllerIT {
       .header("X-AUTH-TOKEN", token)
       .multiPart("file", "myFile", bytes)
       .multiPart("name", "filename")
+      .multiPart("caption", "caption")
       .when()
-      .post("rest/pictures/upload/caption")
+      .post("rest/pictures/upload")
       .then().extract().body().jsonPath().getString("id");
 
     final String COMMENT_TEXT = "This is a comment";
@@ -190,11 +195,35 @@ public class PictureControllerIT {
   }
 
   @Test
-  @Ignore("Need to be logged in as a valid user before running this test")
-  public void listPictures() {
+  public void listPictures() throws Exception {
+
+    Response tokenResponse =
+      given()
+        .request()
+        .body("{ " +
+          "\"email\": \"bob@bob.com\"," +
+          "\"password\": \"bob\"" +
+          "}")
+        .when()
+        .post("/api/login")
+        .then()
+        .statusCode(HttpStatus.OK.value())
+        .extract().response();
+
+    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+    final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
+
     for(int counter = 0; counter < 10; counter++) {
-      final MultiValueMap<String, Object> uploadMap = createUploadMap("name" + counter, "caption" + counter);
-      restTemplate.postForObject(PICTURES_UPLOAD_URL + "/caption"+counter, uploadMap, String.class);
+
+      String pictureId = given()
+        .request()
+        .header("X-AUTH-TOKEN", token)
+        .multiPart("file", "myFile", bytes)
+        .multiPart("name", "filename")
+        .multiPart("caption", "caption" + counter)
+        .when()
+        .post("rest/pictures/upload")
+        .then().extract().body().jsonPath().getString("id");
     }
 
     ResponseEntity<List> pictures = restTemplate.getForEntity(PICTURES_URL, List.class);
