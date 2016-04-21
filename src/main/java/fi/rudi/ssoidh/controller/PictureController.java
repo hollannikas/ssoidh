@@ -54,27 +54,8 @@ public class PictureController {
 
   @RequestMapping(value = "{id}/thumbnail", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
   public ResponseEntity<byte[]> getThumbnail(@PathVariable("id") String id) {
-    final Picture picture = repository.findOne(id);
-    InputStream in = new ByteArrayInputStream(picture.getData());
-    BufferedImage scaledImage = null;
-    BufferedImage bufferedImage;
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    try {
-      bufferedImage = ImageIO.read(in);
-        if (bufferedImage != null) {
-          scaledImage = new BufferedImage(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, BufferedImage.TYPE_INT_RGB);
-          Graphics2D graphics2D = scaledImage.createGraphics();
-          graphics2D.drawImage(bufferedImage, 0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, null);
-          graphics2D.dispose();
-          ImageIO.write(scaledImage  , "jpg", byteArrayOutputStream);
-        }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    byte[] bytes = byteArrayOutputStream.toByteArray();
-    return ResponseEntity.ok()
-      .contentLength( bytes.length)
-      .body(bytes);
+    BufferedImage bufferedImage = getBufferedImage(id);
+    return getPictureResponse(bufferedImage, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
   }
 
   @RequestMapping(value = "{id}/metadata", method = RequestMethod.GET)
@@ -82,23 +63,11 @@ public class PictureController {
     return repository.findOne(id);
   }
 
+  // TODO get picture size upon upload
   @RequestMapping(value = "{id}", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
   public ResponseEntity<byte[]> getPicture(@PathVariable("id") String id) {
-    final Picture picture = repository.findOne(id);
-    InputStream in = new ByteArrayInputStream(picture.getData());
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    try {
-      BufferedImage bufferedImage = ImageIO.read(in);
-      ImageIO.write(bufferedImage  , "jpg", byteArrayOutputStream);
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    byte[] bytes = byteArrayOutputStream.toByteArray();
-    return ResponseEntity.ok()
-      .contentLength( bytes.length)
-      .contentType(MediaType.parseMediaType( MediaType.IMAGE_JPEG_VALUE ))
-      .body(bytes);
+    BufferedImage bufferedImage = getBufferedImage(id);
+    return getPictureResponse(bufferedImage, bufferedImage.getWidth(), bufferedImage.getHeight());
   }
 
   @RequestMapping(method = RequestMethod.POST, value = "upload")
@@ -139,5 +108,38 @@ public class PictureController {
   @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
   @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
   public void handleNoPermission() {
+  }
+
+
+  private BufferedImage getBufferedImage(@PathVariable("id") String id) {
+    final Picture picture = repository.findOne(id);
+    InputStream in = new ByteArrayInputStream(picture.getData());
+    BufferedImage bufferedImage = null;
+    try {
+      bufferedImage = ImageIO.read(in);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return bufferedImage;
+  }
+
+  private ResponseEntity<byte[]> getPictureResponse(BufferedImage bufferedImage, int width, int height) {
+    BufferedImage scaledImage;
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    try {
+      if (bufferedImage != null) {
+        scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics2D = scaledImage.createGraphics();
+        graphics2D.drawImage(bufferedImage, 0, 0, width, height, null);
+        graphics2D.dispose();
+        ImageIO.write(scaledImage  , "jpg", byteArrayOutputStream);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    byte[] bytes = byteArrayOutputStream.toByteArray();
+    return ResponseEntity.ok()
+      .contentLength( bytes.length)
+      .body(bytes);
   }
 }
