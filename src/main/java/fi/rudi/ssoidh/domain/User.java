@@ -1,7 +1,9 @@
 package fi.rudi.ssoidh.domain;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +19,9 @@ import java.util.Collections;
 @Setter
 @Document
 public class User implements UserDetails {
+  @Id
+  @Setter(AccessLevel.NONE)
+  private String id;
   @Indexed(unique=true)
   private String username;
   private String password;

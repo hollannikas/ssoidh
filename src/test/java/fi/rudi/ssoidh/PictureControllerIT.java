@@ -17,15 +17,13 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.util.List;
 
 import static com.jayway.restassured.RestAssured.given;
@@ -43,7 +41,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 @WebAppConfiguration
 @Import(ITMongoConfiguration.class)
 @IntegrationTest("server.port=9090")
-public class PictureControllerIT {
+public class PictureControllerIT extends ITBase {
 
   @Rule
   public MongoDbRule mongoDbRule = newMongoDbRule().defaultSpringMongoDb("integration-test");
@@ -118,20 +116,7 @@ public class PictureControllerIT {
   @Test
   @UsingDataSet(locations = {"/data/users.json"})
   public void authenticatedUserCanUploadAPicture() throws Exception {
-    Response tokenResponse =
-      given()
-        .request()
-        .body("{ " +
-          "\"email\": \"bob@bob.com\"," +
-          "\"password\": \"bob\"" +
-          "}")
-        .when()
-        .post("/api/login")
-        .then()
-        .statusCode(HttpStatus.OK.value())
-        .extract().response();
-
-    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+    final String token = authenticate();
 
     final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
 
@@ -152,20 +137,7 @@ public class PictureControllerIT {
   @Test
   @UsingDataSet(locations = {"/data/users.json"})
   public void authenticatedUserCanComment() throws Exception {
-    Response tokenResponse =
-      given()
-        .request()
-        .body("{ " +
-          "\"email\": \"bob@bob.com\"," +
-          "\"password\": \"bob\"" +
-          "}")
-        .when()
-        .post("/api/login")
-        .then()
-        .statusCode(HttpStatus.OK.value())
-        .extract().response();
-
-    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+    final String token = authenticate();
 
     final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
 
@@ -196,34 +168,31 @@ public class PictureControllerIT {
 
   @Test
   public void listPictures() throws Exception {
+    final String token = authenticate();
+    uploadPictures(token);
+  }
 
-    Response tokenResponse =
-      given()
-        .request()
-        .body("{ " +
-          "\"email\": \"bob@bob.com\"," +
-          "\"password\": \"bob\"" +
-          "}")
-        .when()
-        .post("/api/login")
-        .then()
-        .statusCode(HttpStatus.OK.value())
-        .extract().response();
+  @Test
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void findPicturesByAuthor() throws Exception {
+    final String token = authenticate();
+    uploadPictures(token);
+    System.err.print(given()
+      .request()
+      .header("X-AUTH-TOKEN", token)
+      .when()
+      .get("rest/pictures/by/bob@bob.com")
+      .then()
+      .extract().body().toString()
+    );
+  }
 
-    final String token = tokenResponse.getHeader("X-AUTH-TOKEN");
+  private void uploadPictures(String token) throws IOException {
     final byte[] bytes = IOUtils.toByteArray(getClass().getResourceAsStream("/data/hanami.jpg"));
 
     for(int counter = 0; counter < 10; counter++) {
 
-      String pictureId = given()
-        .request()
-        .header("X-AUTH-TOKEN", token)
-        .multiPart("file", "myFile", bytes)
-        .multiPart("name", "filename")
-        .multiPart("caption", "caption" + counter)
-        .when()
-        .post("rest/pictures/upload")
-        .then().extract().body().jsonPath().getString("id");
+      uploadPicture(token, bytes, counter);
     }
 
     ResponseEntity<List> pictures = restTemplate.getForEntity(PICTURES_URL, List.class);
@@ -231,23 +200,4 @@ public class PictureControllerIT {
     pictures.getBody().forEach(picture -> System.out.println(picture));
   }
 
-
-  /**
-   * Creates a multivalue map containing a file with a name and a caption
-   */
-  private MultiValueMap<String, Object> createUploadMap(String filename, String caption) {
-    MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-    byte[] bytes = filename.getBytes();
-
-    map.add("name", filename);
-    map.add("caption", caption);
-    ByteArrayResource file = new ByteArrayResource(bytes){
-      @Override
-      public String getFilename(){
-        return filename;
-      }
-    };
-    map.add("file", file);
-    return map;
-  }
 }

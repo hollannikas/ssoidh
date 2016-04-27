@@ -6,6 +6,7 @@ import fi.rudi.ssoidh.domain.PictureRepository;
 import fi.rudi.ssoidh.domain.User;
 import fi.rudi.ssoidh.service.SecurityContextService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * RESTful service for pictures
@@ -49,8 +52,23 @@ public class PictureController {
   @RequestMapping(method = RequestMethod.GET)
   public ResponseEntity<List<Picture>> getPictures() {
     // TODO: Separate data from Picture Jackson JsonView?
-    return ResponseEntity.ok().body(repository.findAll());
+    final List<Picture> pictures = StreamSupport
+      .stream(repository.findAll(new Sort(Sort.Direction.DESC, "created")).spliterator(), false)
+      .collect(Collectors.toList());
+    return ResponseEntity.ok().body(pictures);
   }
+
+  // http://stackoverflow.com/questions/16332092/spring-mvc-pathvariable-with-dot-is-getting-truncated
+  @RequestMapping(value = "by/{author:.+}", method = RequestMethod.GET)
+  public ResponseEntity<List<Picture>> getMyPictures(@PathVariable("author") String author) {
+
+    final List<Picture> pictures = StreamSupport
+      .stream(repository.findByOwner(author, new Sort(Sort.Direction.DESC, "created")).spliterator(), false)
+      .collect(Collectors.toList());
+    return ResponseEntity.ok().body(pictures);
+  }
+
+
 
   @RequestMapping(value = "{id}/thumbnail", method = RequestMethod.GET, produces = MediaType.IMAGE_JPEG_VALUE)
   public ResponseEntity<byte[]> getThumbnail(@PathVariable("id") String id) {
@@ -75,7 +93,7 @@ public class PictureController {
                         @RequestParam("caption") String caption) {
 
     User currentUser = securityContextService.currentUser();
-    Picture picture = new Picture(caption, currentUser.getUsername());
+    Picture picture = new Picture(caption, currentUser.getUsername(), new Date());
     try {
       picture.setData(file.getBytes());
       repository.save(picture);

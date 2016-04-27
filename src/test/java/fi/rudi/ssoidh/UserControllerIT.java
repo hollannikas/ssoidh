@@ -25,6 +25,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 
 import static com.jayway.restassured.RestAssured.given;
 import static com.lordofthejars.nosqlunit.mongodb.MongoDbRule.MongoDbRuleBuilder.newMongoDbRule;
+import static org.hamcrest.core.IsEqual.equalTo;
 
 /**
  * Created by rudi on 17/04/16.
@@ -35,7 +36,7 @@ import static com.lordofthejars.nosqlunit.mongodb.MongoDbRule.MongoDbRuleBuilder
 @Import(ITMongoConfiguration.class)
 @CustomComparisonStrategy(comparisonStrategy = MongoFlexibleComparisonStrategy.class)
 @IntegrationTest("server.port=9090")
-public class UserControllerIT {
+public class UserControllerIT extends ITBase {
 
   @Rule
   public MongoDbRule mongoDbRule = newMongoDbRule().defaultSpringMongoDb("integration-test");
@@ -69,6 +70,21 @@ public class UserControllerIT {
       .post("/rest/users/")
       .then()
       .statusCode(HttpStatus.OK.value());
+  }
+
+  @Test
+  @UsingDataSet(locations = {"/data/users.json"})
+  public void loggedInUserCanGetOwnData() {
+    final String token = authenticate();
+
+    given()
+      .request()
+      .header("X-AUTH-TOKEN", token)
+      .when()
+      .get("rest/users")
+      .then()
+      .statusCode(HttpStatus.OK.value())
+      .assertThat().body("name", equalTo("Bob"));
   }
 
   @Test
